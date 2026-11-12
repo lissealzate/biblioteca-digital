@@ -8,9 +8,12 @@ use Illuminate\Http\Request;
 
 class LibroController extends Controller
 {
+    // Columnas del autor que se devuelven (sin foto_bin)
+    private const COLUMNAS_AUTOR = 'autores:id,nombre,apellido,pais,foto,url';
+
     public function index(Request $request)
     {
-        $consulta = Libro::with('autores');
+        $consulta = Libro::with(self::COLUMNAS_AUTOR);
 
         if ($request->filled('titulo')) {
             $consulta->where('titulo', 'LIKE', '%' . $request->titulo . '%');
@@ -18,8 +21,10 @@ class LibroController extends Controller
 
         if ($request->filled('autor')) {
             $consulta->whereHas('autores', function ($query) use ($request) {
-                $query->where('nombre', 'LIKE', '%' . $request->autor . '%')
-                    ->orWhere('apellido', 'LIKE', '%' . $request->autor . '%');
+                $query->where(function ($q) use ($request) {
+                    $q->where('nombre', 'LIKE', '%' . $request->autor . '%')
+                      ->orWhere('apellido', 'LIKE', '%' . $request->autor . '%');
+                });
             });
         }
 
@@ -42,7 +47,7 @@ class LibroController extends Controller
 
     public function show(int $id)
     {
-        $libro = Libro::with('autores')->find($id);
+        $libro = Libro::with(self::COLUMNAS_AUTOR)->find($id);
 
         if (!$libro) {
             return response()->json([

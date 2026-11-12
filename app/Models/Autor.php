@@ -21,8 +21,11 @@ class Autor extends Model
         'url',
         'redes_sociales',
         'pais',
-    ];
 
+        
+    ];
+    protected $hidden = ['foto_bin'];
+    
     protected function casts(): array
     {
         return [

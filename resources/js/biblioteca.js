@@ -1,38 +1,30 @@
-
 const API_URL = '/api';
 
-// Token temporal para pruebas locales
-let API_TOKEN = localStorage.getItem('biblioteca_token');
-
-if (!API_TOKEN) {
-    API_TOKEN = prompt('Ingrese su token de acceso API');
-
-    if (API_TOKEN) {
-        localStorage.setItem('biblioteca_token', API_TOKEN.trim());
-        API_TOKEN = API_TOKEN.trim();
-    }
-}
+// Token opcional: solo se usa para rutas protegidas (crear préstamos, etc.)
+const API_TOKEN = localStorage.getItem('biblioteca_token');
 
 // Función general para consumir la API
 async function consumirAPI(endpoint, opciones = {}) {
 
+    const headers = {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        ...opciones.headers
+    };
+
+    if (API_TOKEN) {
+        headers['Authorization'] = `Bearer ${API_TOKEN}`;
+    }
+
     const respuesta = await fetch(API_URL + endpoint, {
         ...opciones,
-
-        headers: {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${API_TOKEN}`,
-            ...opciones.headers
-        }
+        headers
     });
 
     const resultado = await respuesta.json();
 
     if (!respuesta.ok) {
-        throw new Error(
-            resultado.message || 'Error al consultar la API'
-        );
+        throw new Error(resultado.message || 'Error al consultar la API');
     }
 
     return resultado;
@@ -56,12 +48,12 @@ async function cargarLibros(titulo = '') {
             `/libros?${parametros.toString()}`
         );
 
-        const libros = resultado.data.data || [];
+        const libros = resultado.data || [];
 
         mostrarLibros(libros);
 
         document.getElementById('totalLibros').textContent =
-            resultado.data.total ?? libros.length;
+            resultado.total ?? libros.length;
 
         document.getElementById('librosDisponibles').textContent =
             libros.filter(libro =>
@@ -152,7 +144,7 @@ document.getElementById('buscarLibro')
 
 // Registrar préstamo
 document.getElementById('formPrestamo')
-    .addEventListener('submit', async function(event) {
+    .addEventListener('submit', async function (event) {
 
         event.preventDefault();
 
@@ -218,23 +210,23 @@ async function cargarDashboard() {
         const [respuestaLibros, respuestaPrestamos] =
             await Promise.all([
 
-                consumirAPI('/libros?per_page=1000'),
+                consumirAPI('/libros?per_page=100'),
 
                 consumirAPI('/prestamos')
 
             ]);
 
-        const libros = respuestaLibros.data.data || [];
+        const libros = respuestaLibros.data || [];
 
         const prestamosData = respuestaPrestamos.data;
 
         const prestamos = Array.isArray(prestamosData)
             ? prestamosData
-            : (prestamosData.data || []);
+            : (prestamosData?.data || []);
 
         // Total de libros registrados
         document.getElementById('totalLibros').textContent =
-            respuestaLibros.data.total ?? libros.length;
+            respuestaLibros.total ?? libros.length;
 
         // Libros con existencias
         const disponibles = libros.filter(libro =>
@@ -261,7 +253,7 @@ async function cargarDashboard() {
 
 
 // Inicializar página
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
 
     cargarLibros();
 
